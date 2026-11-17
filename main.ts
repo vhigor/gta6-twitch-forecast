@@ -6,7 +6,7 @@
 // regressed on the log of hour 1's print, ln(v_h) = a_h + b_h * ln(p1), with a Gaussian
 // kernel over ln(p1) (bandwidth 1.5 log units) so launches whose opening hour looked like
 // this launch's count most. The spread is the kernel-weighted residual standard deviation
-// (shrunk by 0.9), so the five quantiles are exp(mu_h + z_tau * s_h).
+// (shrunk by 0.75), so the five quantiles are exp(mu_h + z_tau * s_h).
 //
 // Why this shape: across past launches the ratio viewers(h)/viewers(1) depends strongly on
 // how big hour 1 already was (correlation about -0.9 by the evening: a launch whose first
@@ -14,7 +14,8 @@
 // grows past it; a launch whose first hour is tiny, because its unlock lands later in the
 // UTC day, explodes tenfold). A flat persistence forecast misses that; a single median
 // ratio misses it too. The kernel-weighted slope captures it, and the residual spread
-// keeps the bands honest (about 0.9 coverage in leave-one-out checks over the comparables).
+// keeps the bands honest (about 0.83 coverage in leave-one-out checks over the
+// comparables, 0.95 on the practice cases).
 //
 // Falls back gracefully, hour by hour, so a case is always valid: kernel fit -> unweighted
 // fit on all launches with that hour -> median log-ratio -> flat persistence with a
@@ -32,8 +33,12 @@ const LEVELS = [0.05, 0.25, 0.5, 0.75, 0.95];
  *  size dominate a target's fit. */
 const KERNEL_BW = 1.5;
 /** Residual-spread shrink: the raw residual sd is slightly wide, so the 90% band is
- *  calibrated a touch narrower. */
-const SPREAD_SHRINK = 0.9;
+ *  calibrated a touch narrower. Calibrated 0.75 on the practice cases (mean pinball loss
+ *  0.1855 -> 0.1773, every case better, coverage 0.989 -> 0.946) and on leave-one-out
+ *  over the 20 comparables with a big opening hour (0.2056 -> 0.2033); narrower (0.6)
+ *  scores a hair better on practice but degrades leave-one-out, so 0.75 is the honest
+ *  middle, not the practice minimum. */
+const SPREAD_SHRINK = 0.75;
 /** Guards on the log spread actually used. */
 const SD_FLOOR = 0.05;
 const SD_CAP = 1.5;
